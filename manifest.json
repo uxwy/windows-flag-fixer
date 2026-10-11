@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Windows Flag Fixer",
+    "description": "Restores country flag emojis that show as letters (NL, US, ...) in the Spotify desktop client on Windows. Works with themes and lets you pick the emoji font style.",
+    "preview": "preview.png",
+    "main": "extension.js",
+    "readme": "README.md",
+    "tags": ["emoji", "flags", "windows", "font"]
+  }
+]
