@@ -28,5 +28,10 @@ Click your profile picture, then **Windows Flag Fixer**, and choose a style.
 ## Notes
 
 - The default flag font (Twemoji Country Flags) is loaded from jsDelivr, so an internet connection is needed.
-- The custom font option takes a direct URL to a font you are licensed to use. No third-party emoji font is bundled.
+- The custom font option takes a direct link to a font file (.woff2, .woff, .ttf or .otf) that you are licensed to use. CSS files and web pages are rejected. No third-party emoji font is bundled.
+- Change or remove the link any time from the profile menu: Windows Flag Fixer, Change custom font link.
 - The Noto Color Emoji option may change how digits look, because Google's font includes digit glyphs.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md). The running version is printed in Spotify's console (Ctrl+Shift+I, filter by `windows-flag-fixer`).

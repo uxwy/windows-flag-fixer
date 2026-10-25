@@ -3,6 +3,7 @@
   "use strict";
 
   const ID = "windows-flag-fixer";
+  const VERSION = "1.1.0";
   const FLAG_FONT = "Twemoji Country Flags";
   const FLAG_URL =
     "https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1/dist/TwemojiCountryFlags.woff2";
@@ -248,34 +249,94 @@
     refreshMenu();
   }
 
+  const FONT_FILE = /\.(ttf|otf|woff2?)(\?[^#]*)?(#.*)?$/i;
+
   function openCustomDialog() {
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;flex-direction:column;gap:12px;";
 
     const text = document.createElement("div");
     text.textContent =
-      "Direct URL to an emoji font file (.woff2, .woff, .ttf). Only use fonts you are licensed to use.";
+      "Direct link to an emoji font file ending in .woff2, .woff, .ttf or .otf. A CSS file or a web page will not work. Only use fonts you are licensed to use.";
     const input = document.createElement("input");
     input.type = "text";
     input.value = customUrl;
     input.placeholder = "https://example.com/MyEmojiFont.woff2";
     input.style.cssText =
       "width:100%;padding:8px;border-radius:4px;border:1px solid #727272;background:#121212;color:#fff;";
-    const btn = document.createElement("button");
-    btn.textContent = "Save and apply";
-    btn.style.cssText =
-      "align-self:flex-start;padding:8px 16px;border-radius:500px;border:0;cursor:pointer;background:#1ed760;color:#000;font-weight:700;";
-    btn.onclick = () => {
-      customUrl = input.value.trim();
+    const msg = document.createElement("div");
+    msg.style.cssText = "min-height:1.3em;font-size:13px;color:#f15e6c;";
+
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;";
+    const btnStyle = "padding:8px 16px;border-radius:500px;border:0;cursor:pointer;font-weight:700;";
+    const save = document.createElement("button");
+    save.textContent = "Save and apply";
+    save.style.cssText = btnStyle + "background:#1ed760;color:#000;";
+    const clear = document.createElement("button");
+    clear.textContent = "Remove link";
+    clear.style.cssText = btnStyle + "background:#333;color:#fff;";
+    clear.hidden = !customUrl;
+
+    const busy = (on) => {
+      save.disabled = on;
+      clear.disabled = on;
+    };
+
+    save.onclick = async () => {
+      const url = input.value.trim();
+      if (!/^https:\/\//i.test(url)) {
+        msg.textContent = "The link must start with https://";
+        return;
+      }
+      if (!FONT_FILE.test(url)) {
+        msg.textContent =
+          "That does not look like a font file. It must end in .woff2, .woff, .ttf or .otf (a .css link or a web page cannot be used).";
+        return;
+      }
+      const before = { url: customUrl, style: currentStyle };
+      msg.style.color = "#b3b3b3";
+      msg.textContent = "Checking the font…";
+      busy(true);
+      customUrl = url;
+      currentStyle = "custom";
+      apply();
+      try {
+        const loaded = await Promise.race([
+          document.fonts.load(`16px "${STYLES.custom.family}"`, "\u{1F1F3}\u{1F1F1}"),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000)),
+        ]);
+        if (!loaded || !loaded.length) throw new Error("font did not load");
+      } catch (e) {
+        customUrl = before.url;
+        currentStyle = before.style;
+        apply();
+        refreshMenu();
+        msg.style.color = "#f15e6c";
+        msg.textContent = "Spotify could not load a font from that link, so nothing was changed.";
+        busy(false);
+        return;
+      }
       store.set(KEY_CUSTOM, customUrl);
-      currentStyle = customUrl ? "custom" : "twemoji";
       store.set(KEY_STYLE, currentStyle);
+      refreshMenu();
+      Spicetify.PopupModal.hide();
+    };
+
+    clear.onclick = () => {
+      customUrl = "";
+      store.set(KEY_CUSTOM, "");
+      if (currentStyle === "custom") {
+        currentStyle = "twemoji";
+        store.set(KEY_STYLE, currentStyle);
+      }
       apply();
       refreshMenu();
       Spicetify.PopupModal.hide();
     };
 
-    wrap.append(text, input, btn);
+    row.append(save, clear);
+    wrap.append(text, input, msg, row);
     Spicetify.PopupModal.display({ title: "Custom emoji font", content: wrap });
   }
 
@@ -294,6 +355,7 @@
       items[key] = new Spicetify.Menu.Item(def.label, key === currentStyle, () => selectStyle(key));
       return items[key];
     });
+    menuItems.push(new Spicetify.Menu.Item("Change custom font link…", false, () => openCustomDialog()));
     forceItem = new Spicetify.Menu.Item("Force font everywhere (may override theme)", force, () => {
       force = !force;
       store.set(KEY_FORCE, force);
@@ -311,5 +373,5 @@
     console.warn(`[${ID}] menu could not be created, flags will still work.`, e);
   }
 
-  console.log(`[${ID}] loaded (style: ${currentStyle})`);
+  console.log(`[${ID}] v${VERSION} loaded (style: ${currentStyle})`);
 })();
